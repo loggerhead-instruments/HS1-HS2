@@ -192,6 +192,10 @@ DItemRevisionGUID=
 GenerateClassCluster=0
 DocumentUniqueId=FXVTLCYQ
 
+[GeneratedDocument1]
+DocumentPath=Project Outputs for HS1-HS2\Design Rule Check - HS1-HS2.html
+DItemRevisionGUID=
+
 [Configuration1]
 Name=Default Configuration
 ParameterCount=0
