@@ -1,10 +1,10 @@
 Board Information Report
 Filename     : C:\w\HS1-HS2\Altium\HS1-HS2.PcbDoc
-Date         : 3/15/2021
-Time         : 3:44:54 PM
+Date         : 3/24/2021
+Time         : 2:37:38 PM
 Time Elapsed : 00:00:00
 
 General
     Board Size, 3000milsx3550mils
-    Components on board, 66
+    Components on board, 75
 count : 2

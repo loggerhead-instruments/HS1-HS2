@@ -192,6 +192,23 @@ DItemRevisionGUID=
 GenerateClassCluster=0
 DocumentUniqueId=FXVTLCYQ
 
+[Document10]
+DocumentPath=..\..\altium_library\MAX4996ETG_\MAX4996ETG_.IntLib
+AnnotationEnabled=1
+AnnotateStartValue=1
+AnnotationIndexControlEnabled=0
+AnnotateSuffix=
+AnnotateScope=All
+AnnotateOrder=-1
+DoLibraryUpdate=1
+DoDatabaseUpdate=1
+ClassGenCCAutoEnabled=1
+ClassGenCCAutoRoomEnabled=1
+ClassGenNCAutoScope=None
+DItemRevisionGUID=
+GenerateClassCluster=0
+DocumentUniqueId=
+
 [GeneratedDocument1]
 DocumentPath=Project Outputs for HS1-HS2\Design Rule Check - HS1-HS2.html
 DItemRevisionGUID=
