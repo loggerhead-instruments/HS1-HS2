@@ -1,6 +1,5 @@
 //
-// LS1 and LS2 acoustic recorders
-// THIS VERSION CURRENTLY ONLY WORKS WITH 1 CARD
+// HS1 and HS2 Acoustic Recorders
 //
 // Loggerhead Instruments
 // 2021
@@ -12,12 +11,12 @@
 //
 // Compile with 96 MHz Fastest
 
-// Modified by WMXZ 15-05-2018 for SdFS anf multiple sampling frequencies
+// Modified by WMXZ 15-05-2018 for SdFS and multiple sampling frequencies
 // Optionally uses SdFS from Bill Greiman https://github.com/greiman/SdFs; but has higher current draw in sleep
 
 //*****************************************************************************************
 
-char codeVersion[5] = "2.00";
+char codeVersion[5] = "3.00";
 static boolean printDiags = 1;  // 1: serial print diagnostics; 0: no diagnostics
 #define MQ 100 // to be used with LHI record queue (modified local version)
 int roundSeconds = 60;//start time modulo to nearest roundSeconds
@@ -84,20 +83,18 @@ const int DOWN = 3;
 const int SELECT = 8;
 const int hydroPowPin = 2;
 const int vSense = A14; 
+#define SGTL_EN 6
 
 // microSD chip select pins
 #define CS1 10
-#define CS2 15
-#define CS3 20
-#define CS4 21
 #define SDPOW1 17
 #define SDPOW2 16
-#define SDPOW3 5
-#define SDPOW4 6
-int chipSelect[4];
-int sdPowSelect[4];
-uint32_t freeMB[4];
-uint32_t filesPerCard[4];
+#define SDSWITCH 15
+#define SDSWITCHEN 20
+int chipSelect[2];
+int sdPowSelect[2];
+uint32_t freeMB[2];
+uint32_t filesPerCard[2];
 volatile int currentCard = 0;
 boolean newCard = 0;
 
@@ -226,13 +223,10 @@ void setup() {
   read_myID();
 
   chipSelect[0] = CS1;
-  chipSelect[1] = CS2;
-  chipSelect[2] = CS3;
-  chipSelect[3] = CS4;
+  chipSelect[1] = CS1;
   sdPowSelect[0] = SDPOW1;
   sdPowSelect[1] = SDPOW2;
-  sdPowSelect[2] = SDPOW3;
-  sdPowSelect[3] = SDPOW4;
+
   
   Serial.begin(baud);
   delay(500);
@@ -261,12 +255,15 @@ void setup() {
 
   pinMode(SDPOW1, OUTPUT);
   pinMode(SDPOW2, OUTPUT);
-  pinMode(SDPOW3, OUTPUT);
-  pinMode(SDPOW4, OUTPUT);
+  pinMode(SDSWITCH, OUTPUT);
+  pinMode(SDSWITCHEN, OUTPUT);
   digitalWrite(SDPOW1, LOW); // start all cards switched off in case of reset
   digitalWrite(SDPOW2, LOW);
-  digitalWrite(SDPOW3, LOW);
-  digitalWrite(SDPOW4, LOW);
+  digitalWrite(SDSWITCH, LOW);
+  digitalWrite(SDSWITCHEN, HIGH); // Enabled when low
+
+  pinMode(SGTL_EN, OUTPUT);
+  digitalWrite(SGTL_EN, HIGH); // power audio codec on
   
   //setup display and controls
   pinMode(UP, INPUT_PULLUP);
@@ -710,29 +707,12 @@ time_t getTeensy3Time(boolean syncTeensy)
 void resetFunc(void){
   EEPROM.write(20, 1); // reset indicator register
   if(mode == 1) file.close();  // close file if open
-  // MISO, MOSI, SCLK LOW
-  digitalWrite(7, LOW);
-  digitalWrite(12, LOW);
-  digitalWrite(14, LOW);
-  pinMode(7, INPUT_DISABLE);
-  pinMode(12, INPUT_DISABLE);
-  pinMode(14, INPUT_DISABLE);
-  
-  //cycle power on all SD cards (in case there are cards in other slots)
-  for(int n = 0; n<4; n++){
-    digitalWrite(sdPowSelect[n], LOW);
-    digitalWrite(chipSelect[n], LOW);
-    pinMode(chipSelect[n], INPUT_DISABLE);
-  }
-  delay(2000);
-  for(int n = 0; n<4; n++){
-    digitalWrite(sdPowSelect[n], HIGH);
-  }
-  delay(2000);
-  for(int n = 0; n<4; n++){
-    digitalWrite(sdPowSelect[n], LOW);
-  }
-  delay(2000);
+
+  // disconnect cards
+  digitalWrite(SDSWITCHEN, HIGH); // switch is enabled low
+  digitalWrite(SDPOW2, LOW);
+  digitalWrite(SDPOW1, LOW); 
+  delay(1000);
   CPU_RESTART
 }
 
@@ -756,8 +736,30 @@ float readVoltage(){
 void checkSD(){
   if (filesPerCard[currentCard] > 0) filesPerCard[currentCard] -= 1;
   else{
-    // card full, stop recordings
-    while(1);
+    currentCard++;
+    if(currentCard > 1){
+      // disconnect cards
+      digitalWrite(SDSWITCHEN, HIGH); // switch is enabled low
+      digitalWrite(SDPOW2, LOW);
+      digitalWrite(SDPOW1, LOW);  // turn off card 1
+      while(1);
+    }
+    sd.end();
+    digitalWrite(SDPOW2, HIGH);
+    digitalWrite(SDSWITCH, HIGH); // LOW is Normally Closed, Card 1
+    digitalWrite(SDSWITCHEN, LOW); // switch is enabled low
+    
+    delay(100);
+    if (filesPerCard[currentCard] > 0) filesPerCard[currentCard] -= 1;
+    if(!sd.begin(CS1)){
+      display.print("Card 2 Fail");
+      display.display();
+      delay(1000);
+      resetFunc();
+    }
+
+    digitalWrite(SDPOW1, LOW);  // turn off card 1
+    
   }
 
   if(printDiags){

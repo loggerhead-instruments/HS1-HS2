@@ -110,9 +110,10 @@ void manualSettings(){
     display.println("Card Free/Total MB");
 
     // power cards on
-    for (int n=0; n<1; n++){
-      digitalWrite(sdPowSelect[n], HIGH);
-    }
+    digitalWrite(SDPOW1, HIGH);
+    digitalWrite(SDPOW2, HIGH);
+    digitalWrite(SDSWITCH, LOW); // LOW is Normally Closed, Card 1
+    digitalWrite(SDSWITCHEN, LOW); // switch is enabled low
     delay(1000);
     
     // Initialize the SD card
@@ -120,8 +121,10 @@ void manualSettings(){
     SPI.setSCK(14);
     SPI.setMISO(12);
       
-    for (int n=0; n<1; n++){
+    for (int n=0; n<2; n++){
       freeMB[n] = 0; //reset
+
+      digitalWrite(SDSWITCH, n); 
       
       Serial.println(); Serial.println();
       Serial.print("Card:"); Serial.println(n + 1);
@@ -129,7 +132,7 @@ void manualSettings(){
       display.display();
       delay(100);
 
-      if(sd.begin(chipSelect[n])){
+      if(sd.begin(CS1)){
         int32_t volFree = sd.vol()->freeClusterCount();
         Serial.print("volFree:");
         Serial.println(volFree);
@@ -161,17 +164,19 @@ void manualSettings(){
         display.display();
         while(1);
     }
+   }
     // digitalWrite(sdPowSelect[n], LOW);
-  }
 
-//  // set back to card 1
-//  digitalWrite(sdPowSelect[0], HIGH);
-//  delay(100);
-//  if(!sd.begin(chipSelect[0])){
-//    display.print("Card 1 Fail");
-//    display.display();
-//    while(1);
-//  }
+  // set back to card 1
+  digitalWrite(SDSWITCH, LOW);
+  delay(100);
+  if(!sd.begin(CS1)){
+    display.print("Card 1 Fail");
+    display.display();
+    while(1);
+  }
+  // Power off card 2
+  digitalWrite(SDPOW2, LOW);
 
   LoadScript(); // secret settings accessible from card 1
   calcGain();
@@ -585,27 +590,31 @@ void setTeensyTime(int hr, int mn, int sc, int dy, int mh, int yr){
   Teensy3Clock.set(newtime); 
   autoStartTime = getTeensy3Time(0);
 }
-  
+
+int heldDown = 0;
+int heldUp = 0;
+   
 int updateVal(long curVal, long minVal, long maxVal){
   boolean upVal = digitalRead(UP);
   boolean downVal = digitalRead(DOWN);
-  static int heldDown = 0;
-  static int heldUp = 0;
 
   if(upVal==0){
     settingsChanged = 1;
-    if (heldUp < 20) delay(200);
+    if (heldUp < 20) delay(100);
       curVal += 1;
       heldUp += 1;
     }
     else heldUp = 0;
 
-    if (heldUp > 100) curVal += 4; //if held up for a while skip an additional 4
-    if (heldUp > 200) curVal += 55; //if held up for a while skip an additional 4
+    if (heldUp > 60){
+      curVal += 5; //if held up for a while skip
+      delay(10);
+    }
+    if (heldUp > 120) curVal += 5; //if held up for a while skip
     
     if(downVal==0){
       settingsChanged = 1;
-      if(heldDown < 20) delay(200);
+      if(heldDown < 20) delay(100);
       if(curVal < 61) { // going down to 0, go back to slow mode
         heldDown = 0;
       }
@@ -614,8 +623,11 @@ int updateVal(long curVal, long minVal, long maxVal){
     }
     else heldDown = 0;
 
-    if(heldDown > 100) curVal -= 4;
-    if(heldDown > 200) curVal -= 55;
+    if(heldDown > 60){
+      curVal -= 5;
+      delay(10);
+    }
+    if(heldDown > 120) curVal -= 5;
 
     if (curVal < minVal) curVal = maxVal;
     if (curVal > maxVal) curVal = minVal;
