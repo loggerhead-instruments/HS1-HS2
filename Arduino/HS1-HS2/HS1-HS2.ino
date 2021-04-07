@@ -451,19 +451,8 @@ void loop() {
         if( (snooze_hour * 3600) + (snooze_minute * 60) + snooze_second >=10){
             digitalWrite(hydroPowPin, LOW); //hydrophone off
             audio_power_down();  // when this is activated, seems to occassionally have trouble restarting; no LRCLK signal or RX on Teensy
-//            digitalWrite(sdPowSelect[currentCard], LOW);
-//            digitalWrite(chipSelect[currentCard], LOW);
-//            // MISO, MOSI, SCLK LOW
-//            digitalWrite(7, LOW);
-//            digitalWrite(12, LOW);
-//            digitalWrite(14, LOW);
-//            pinMode(7, INPUT_DISABLE);
-//            pinMode(12, INPUT_DISABLE);
-//            pinMode(14, INPUT_DISABLE);
-//            pinMode(chipSelect[currentCard], INPUT_DISABLE);
             // de-select audio
             I2S0_RCSR &= ~(I2S_RCSR_RE | I2S_RCSR_BCE);
-            
             
             if(printDiags){
               Serial.print("Snooze HH MM SS ");
@@ -481,11 +470,7 @@ void loop() {
             
             // Waking up
            // if (printDiags==0) usbDisable();
-//             digitalWrite(sdPowSelect[0], HIGH);
-//             SPI.setMOSI(7);
-//             SPI.setSCK(14);
-//             SPI.setMISO(12);
-//      
+
 //             delay(100);
 //             int cardFailCounter = 0;
 //             while(!sd.begin(chipSelect[currentCard], SD_SCK_MHZ(50))){
