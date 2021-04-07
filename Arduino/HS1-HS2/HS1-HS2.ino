@@ -5,6 +5,9 @@
 // 2021
 // David Mann 
 
+// To do:
+// - test power down card during sleep
+
 // 
 // Modified from PJRC audio code
 // http://www.pjrc.com/store/teensy3_audio.html
@@ -450,10 +453,17 @@ void loop() {
         
         if( (snooze_hour * 3600) + (snooze_minute * 60) + snooze_second >=10){
             digitalWrite(hydroPowPin, LOW); //hydrophone off
-            audio_power_down();  // when this is activated, seems to occassionally have trouble restarting; no LRCLK signal or RX on Teensy
+            // audio_power_down();  // when this is activated, seems to occassionally have trouble restarting; no LRCLK signal or RX on Teensy
             // de-select audio
             I2S0_RCSR &= ~(I2S_RCSR_RE | I2S_RCSR_BCE);
-            
+
+            // disable audio chip
+            digitalWrite(SGTL_EN, LOW);
+            sd.end();
+            digitalWrite(SDPOW1, LOW); // start all cards switched off in case of reset
+            digitalWrite(SDPOW2, LOW);
+            digitalWrite(SDSWITCHEN, HIGH); // Enabled when low
+     
             if(printDiags){
               Serial.print("Snooze HH MM SS ");
               Serial.print(snooze_hour);
@@ -470,21 +480,20 @@ void loop() {
             
             // Waking up
            // if (printDiags==0) usbDisable();
-
-//             delay(100);
-//             int cardFailCounter = 0;
-//             while(!sd.begin(chipSelect[currentCard], SD_SCK_MHZ(50))){
-//              display.print("Card Fail");
-//              display.display();
-//              delay(100);
-//              if(cardFailCounter > 100) resetFunc();
-//            }
-
-            digitalWrite(hydroPowPin, HIGH); // hydrophone on
-            delay(300);  // give time for Serial to reconnect to USB
+             digitalWrite(SGTL_EN, HIGH);
+             digitalWrite(sdPowSelect[currentCard], HIGH);  // power on current SD card
+             digitalWrite(hydroPowPin, HIGH); // hydrophone on
+             digitalWrite(SDSWITCHEN, LOW); // Enabled when low
+             delay(300);
+             
+             int cardFailCounter = 0;
+             while(!sd.begin(CS1)){
+              display.print("Card Fail");
+              display.display();
+              delay(200);
+              if(cardFailCounter > 5) resetFunc();
+            }
             AudioInit(isf);
-            
-            //audio_power_up();  // when use audio_power_down() before sleeping, does not always get LRCLK. This did not fix.  
          }
 
         display.begin(SSD1306_SWITCHCAPVCC, 0x3C);  //initialize display
@@ -731,7 +740,7 @@ void checkSD(){
     }
     sd.end();
     digitalWrite(SDPOW2, HIGH);
-    digitalWrite(SDSWITCH, HIGH); // LOW is Normally Closed, Card 1
+    digitalWrite(SDSWITCH, HIGH); // LOW is Normally Closed, Card 1; HIGH Card 2
     digitalWrite(SDSWITCHEN, LOW); // switch is enabled low
     
     delay(100);
