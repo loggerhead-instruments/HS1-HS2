@@ -607,12 +607,11 @@ void FileInit()
     if(printDiags) Serial.println("New Folder");
     folderMonth = month(t);
     sprintf(dirname, "/%04d-%02d", year(t), folderMonth);
-
     sd.mkdir(dirname);
-    sd.chdir(dirname);
    }
    pinMode(vSense, INPUT);  // get ready to read voltage
    float voltage = readVoltage();
+   if (rec_int > 0) sd.chdir(dirname);
 
   #if USE_SDFS==1
     FsDateTime::callback = file_date_time;
