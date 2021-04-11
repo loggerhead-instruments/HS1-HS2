@@ -625,7 +625,6 @@ void FileInit()
    while (!file.open(filename, O_WRITE | O_CREAT | O_EXCL)){
     file_count += 1;
     sprintf(filename,"F%06d.wav",file_count); //if can't open just use count
-    sd.chdir(dirname);
     file.open(filename, O_WRITE | O_CREAT | O_EXCL);
     if(printDiags)Serial.println(filename);
     delay(10);
@@ -763,7 +762,8 @@ void checkSD(){
       delay(1000);
       resetFunc();
     }
-
+    if(rec_int>0) sd.mkdir(dirname);
+    sd.chdir(dirname);
     digitalWrite(SDPOW1, LOW);  // turn off card 1
     
   }

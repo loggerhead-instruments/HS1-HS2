@@ -151,7 +151,6 @@ void manualSettings(){
         Serial.println("Unable to access the SD card");
         display.print("Card Fail");
         display.display();
-        if(n==0) while(1);
     }
    }
     // digitalWrite(sdPowSelect[n], LOW);
