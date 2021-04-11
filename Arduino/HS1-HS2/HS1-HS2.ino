@@ -7,6 +7,8 @@
 
 // To do:
 // - test power down card during sleep
+// - update power measurements during sleep
+// - 1 week test 1 minute on 4 minutes off
 
 // 
 // Modified from PJRC audio code
@@ -15,12 +17,11 @@
 // Compile with 96 MHz Fastest
 
 // Modified by WMXZ 15-05-2018 for SdFS and multiple sampling frequencies
-// Optionally uses SdFS from Bill Greiman https://github.com/greiman/SdFs; but has higher current draw in sleep
 
 //*****************************************************************************************
 
 char codeVersion[5] = "3.00";
-static boolean printDiags = 1;  // 1: serial print diagnostics; 0: no diagnostics
+static boolean printDiags = 0;  // 1: serial print diagnostics; 0: no diagnostics
 #define MQ 100 // to be used with LHI record queue (modified local version)
 int roundSeconds = 60;//start time modulo to nearest roundSeconds
 int wakeahead = 4;  //wake from snooze to give hydrophone to power up
@@ -230,7 +231,6 @@ void setup() {
   sdPowSelect[0] = SDPOW1;
   sdPowSelect[1] = SDPOW2;
 
-  
   Serial.begin(baud);
   delay(500);
 
@@ -314,8 +314,8 @@ void setup() {
   ss -= snooze_minute * 60;
   snooze_second = ss;
   Serial.print("Snooze HH MM SS ");
-  Serial.print(snooze_hour);
-  Serial.print(snooze_minute);
+  Serial.print(snooze_hour); Serial.print(":");
+  Serial.print(snooze_minute); Serial.print(":");
   Serial.println(snooze_second);
 
   Serial.print("rec dur ");
@@ -337,6 +337,10 @@ void setup() {
   // create first folder to hold data
   folderMonth = -1;  //set to -1 so when first file made will create directory
   checkSD();
+
+  if(printDiags==0) {
+    Serial.end();
+  }
 }
 
 //
@@ -369,7 +373,7 @@ void loop() {
         if(noDC==2){
           audio_bypass_adc_hp();
          }
-        Serial.println("Record Start.");
+        if(printDiags) Serial.println("Record Start.");
 
         // set current stop time and calculate next startTime
         if(recMode==MODE_NORMAL){
@@ -381,8 +385,11 @@ void loop() {
           if (rec_int==0){
              stopTime = startTime + dielRecSeconds;
              startTime = startTime + (24*3600); // increment startTime by 1 day
-             Serial.print("New diel stop:");
-             printTime(stopTime);
+             if(printDiags) {
+              Serial.print("New diel stop:");
+              printTime(stopTime);
+             }
+             
           }
           else{
             stopTime = startTime + rec_dur;
@@ -390,12 +397,15 @@ void loop() {
             setDielTime(); // make sure new start is in diel window
           }
         }
-        Serial.print("Current Time: ");
-        printTime(getTeensy3Time(0));
-        Serial.print("Stop Time: ");
-        printTime(stopTime);
-        Serial.print("Next Start:");
-        printTime(startTime);
+        if(printDiags) {
+          Serial.print("Current Time: ");
+          printTime(getTeensy3Time(0));
+          Serial.print("Stop Time: ");
+          printTime(stopTime);
+          Serial.print("Next Start:");
+          printTime(startTime);
+        }
+        
 
         mode = 1;
         display.ssd1306_command(SSD1306_DISPLAYOFF); // turn off display during recording
@@ -453,16 +463,14 @@ void loop() {
         
         if( (snooze_hour * 3600) + (snooze_minute * 60) + snooze_second >=10){
             digitalWrite(hydroPowPin, LOW); //hydrophone off
-            // audio_power_down();  // when this is activated, seems to occassionally have trouble restarting; no LRCLK signal or RX on Teensy
-            // de-select audio
-            I2S0_RCSR &= ~(I2S_RCSR_RE | I2S_RCSR_BCE);
+            I2S0_RCSR &= ~(I2S_RCSR_RE | I2S_RCSR_BCE); // de-select audio
 
             // disable audio chip
             digitalWrite(SGTL_EN, LOW);
             sd.end();
-            digitalWrite(SDPOW1, LOW); // start all cards switched off in case of reset
+            digitalWrite(SDPOW1, LOW); // turn off SD card
             digitalWrite(SDPOW2, LOW);
-            digitalWrite(SDSWITCHEN, HIGH); // Enabled when low
+            digitalWrite(SDSWITCHEN, HIGH); // Disconnect SD cards; Enabled when low
      
             if(printDiags){
               Serial.print("Snooze HH MM SS ");
@@ -479,11 +487,17 @@ void loop() {
             /// ... Sleeping ....
             
             // Waking up
-           // if (printDiags==0) usbDisable();
+             if (printDiags) {
+                Serial.begin(baud);
+             }
              digitalWrite(SGTL_EN, HIGH);
              digitalWrite(sdPowSelect[currentCard], HIGH);  // power on current SD card
              digitalWrite(hydroPowPin, HIGH); // hydrophone on
              digitalWrite(SDSWITCHEN, LOW); // Enabled when low
+             // Initialize the SD card
+              SPI.setMOSI(7);
+              SPI.setSCK(14);
+              SPI.setMISO(12);
              delay(300);
              
              int cardFailCounter = 0;
@@ -495,7 +509,6 @@ void loop() {
             }
             AudioInit(isf);
          }
-
         display.begin(SSD1306_SWITCHCAPVCC, 0x3C);  //initialize display
         mode = 0;  // standby mode
       }
@@ -609,13 +622,13 @@ void FileInit()
 
    // open file 
    sprintf(filename,"%04d%02d%02dT%02d%02d%02d_%lu%lu_%2.1fdB_%2.1fV_ver%s.wav", year(t), month(t), day(t), hour(t), minute(t), second(t), myID[0], myID[1], gainDb, voltage, codeVersion);  //filename is DDHHMMSS
-   Serial.println(filename);
+   if(printDiags) Serial.println(filename);
    while (!file.open(filename, O_WRITE | O_CREAT | O_EXCL)){
     file_count += 1;
     sprintf(filename,"F%06d.wav",file_count); //if can't open just use count
     sd.chdir(dirname);
     file.open(filename, O_WRITE | O_CREAT | O_EXCL);
-    Serial.println(filename);
+    if(printDiags)Serial.println(filename);
     delay(10);
     if(file_count>20) {
       resetFunc();
@@ -641,8 +654,8 @@ void FileInit()
 
     file.write((uint8_t *)&wav_hdr, 44);
 
-    Serial.print("Buffers: ");
-    Serial.println(nbufs_per_file);
+    if(printDiags) Serial.print("Buffers: ");
+    if(printDiags) Serial.println(nbufs_per_file);
 }
 
 //This function returns the date and time for SD card file access and modify time. One needs to call in setup() to register this callback function: SdFile::dateTimeCallback(file_date_time);
@@ -783,12 +796,15 @@ void setDielTime(){
        tmStart.Second = 0;
        startTime = makeTime(tmStart);
        if(startTime < getTeensy3Time(0)) startTime += SECS_PER_DAY;  // make sure after current time
-       Serial.print("New diel start:");
-       printTime(startTime);
+       if(printDiags) {
+        Serial.print("New diel start:");
+        printTime(startTime);
+       }
+       
      }
      dielRecSeconds = (endMinutes-startMinutes) * 60;
-     Serial.print("Diel Rec Seconds");
-     Serial.println(dielRecSeconds);
+     if(printDiags) Serial.print("Diel Rec Seconds");
+     if(printDiags) Serial.println(dielRecSeconds);
   }
   else{  // e.g. 23:00 - 06:00
     if((startTimeMinutes<startMinutes) & (startTimeMinutes>endMinutes)){
@@ -798,11 +814,14 @@ void setDielTime(){
        tmStart.Second = 0;
        startTime = makeTime(tmStart);
        if(startTime < getTeensy3Time(0)) startTime += SECS_PER_DAY;  // make sure after current time
-       Serial.print("New diel start:");
-       printTime(startTime);
+       if(printDiags){
+        Serial.print("New diel start:");
+        printTime(startTime);
+       }
+       
     }
     dielRecSeconds = ((1440 - startMinutes) * 60) + (endMinutes * 60);
-    Serial.print("Diel Rec Seconds");
-    Serial.println(dielRecSeconds);
+    if(printDiags) Serial.print("Diel Rec Seconds");
+    if(printDiags) Serial.println(dielRecSeconds);
   }
 }
