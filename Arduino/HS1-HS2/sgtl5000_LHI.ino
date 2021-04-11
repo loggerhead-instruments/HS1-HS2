@@ -465,10 +465,11 @@ bool audio_enable(int fs_mode)
   
   //chipWrite(CHIP_ANA_ADC_CTRL, 0x0000); // 0 dB gain
   //chipWrite(CHIP_ANA_ADC_CTRL, 0x0100); // -6 dB gain
-  Serial.print("Set gain:");
-  Serial.println(gainSetting);
-  Serial.println(chipWrite(CHIP_ANA_ADC_CTRL, gainSetting<<4 | gainSetting)); // set left and right gain
-  
+  if(printDiags){
+    Serial.print("Set gain:");
+    Serial.println(gainSetting);
+    Serial.println(chipWrite(CHIP_ANA_ADC_CTRL, gainSetting<<4 | gainSetting)); // set left and right gain
+  }
    return true;
 }
 
@@ -536,7 +537,7 @@ void I2S_modification(uint32_t fsamp, uint16_t nbits)
   if((F_CPU==96000000) || (F_CPU==48000000) || (F_CPU==24000000)) fcpu=96000000; 
   float fs = (fcpu * (iscl[0]+1.0f)) / (iscl[1]+1l) / 2 / (iscl[2]+1l) / (2l*nbits);
 
-  Serial.printf("%d %d: %d %d %d %d %d %d\n\r",
+  if(printDiags) Serial.printf("%d %d: %d %d %d %d %d %d\n\r",
         F_CPU, fcpu, fsamp, (int)fs, nbits,iscl[0]+1,iscl[1]+1,iscl[2]+1);
   
 

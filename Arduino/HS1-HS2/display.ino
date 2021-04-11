@@ -1,12 +1,12 @@
 float mAmpRec = 50;  
-float mAmpSleep = 3.2; 
+float mAmpSleep = 2.1; 
 byte nBatPacks = 8;
 float mAhPerBat = 12000.0; // assume 12.0Ah per battery pack; good batteries should be 14000
 float fileMB;
 
 float mAmpMono[9] = { 35, 37, 38, 41, 41, 48, 64, 69, 79};
 float mAmpStereo[9] = { 36, 38, 43, 47, 48, 62, 90, 100, 107};
-// stereo record power consumption 1 TB SanDisk exFAT; sleep 4.2 mA
+// stereo record power consumption 1 TB SanDisk exFAT
 // 8 kHz = 36 mA
 // 16 kHz = 38 mA
 // 32 kHz = 43 mA
@@ -27,17 +27,6 @@ float mAmpStereo[9] = { 36, 38, 43, 47, 48, 62, 90, 100, 107};
 // 200 kHz = 64 mA
 // 250 kHz = 69 mA
 // 300 kHz = 79 mA
-
-// stereo record power consumption 256 GB Samsung exFAT; 14 mA sleep (2.8 mA if power down SD and disable SPI)
-// 8 kHz = 46 mA
-// 16 kHz = 46 mA
-// 32 kHz = 48 mA
-// 44.1 kHz = 49 mA
-// 48 kHz = 49 mA
-// 96 kHz = 53 mA
-// 200 kHz = 60 mA
-// 250 kHz = 64 mA
-// 300 kHz = 95 mA
 
 csd_t m_csd;
 
@@ -104,7 +93,7 @@ void manualSettings(){
 
 // get free space on cards
     cDisplay();
-    display.print("LS Init");
+    display.print("HS Init");
     display.setTextSize(1);
     display.setCursor(0, 16);
     display.println("Card Free/Total MB");
@@ -162,7 +151,7 @@ void manualSettings(){
         Serial.println("Unable to access the SD card");
         display.print("Card Fail");
         display.display();
-        while(1);
+        if(n==0) while(1);
     }
    }
     // digitalWrite(sdPowSelect[n], LOW);
@@ -764,17 +753,17 @@ void displayClock(time_t t, int loc){
 }
 
 void printTime(time_t t){
-  Serial.print(year(t));
-  Serial.print('-');
-  Serial.print(month(t));
-  Serial.print('-');
-  Serial.print(day(t));
-  Serial.print(" ");
-  Serial.print(hour(t));
-  Serial.print(':');
-  Serial.print(minute(t));
-  Serial.print(':');
-  Serial.println(second(t));
+    Serial.print(year(t));
+    Serial.print('-');
+    Serial.print(month(t));
+    Serial.print('-');
+    Serial.print(day(t));
+    Serial.print(" ");
+    Serial.print(hour(t));
+    Serial.print(':');
+    Serial.print(minute(t));
+    Serial.print(':');
+    Serial.println(second(t));
 }
 
 void readEEPROM(){
