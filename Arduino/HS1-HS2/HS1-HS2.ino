@@ -487,27 +487,28 @@ void loop() {
                 Serial.begin(baud);
              }
              digitalWrite(SGTL_EN, HIGH);
+             digitalWrite(SDSWITCHEN, LOW); // Enabled when low
              digitalWrite(sdPowSelect[currentCard], HIGH);  // power on current SD card
              digitalWrite(hydroPowPin, HIGH); // hydrophone on
-             digitalWrite(SDSWITCHEN, LOW); // Enabled when low
+             
+             delay(300);
+             
              // Initialize the SD card
              SPI.setMOSI(7);
              SPI.setSCK(14);
              SPI.setMISO(12);
-             delay(300);
              
              int cardFailCounter = 0;
              while(!sd.begin(CS1)){
               display.print("Card Fail");
               display.display();
-
+              
+              digitalWrite(sdPowSelect[currentCard], LOW); // turn off SD card
               digitalWrite(SDSWITCHEN, HIGH); // Disconnect SD cards; Enabled when low
-              digitalWrite(SDPOW1, LOW); // turn off SD card
-              digitalWrite(SDPOW2, LOW);
               delay(700 + (1000 * cardFailCounter));
-              digitalWrite(SDPOW1, HIGH); // turn on both SD card
-              digitalWrite(SDPOW2, HIGH);
               digitalWrite(SDSWITCHEN, LOW);
+              digitalWrite(sdPowSelect[currentCard], HIGH); // turn on SD card
+              
               delay(300  + (1000 * cardFailCounter)); 
               if(cardFailCounter > 5) resetFunc();
               cardFailCounter++;

@@ -114,16 +114,18 @@ void manualSettings(){
     display.setCursor(0, 16);
     display.println("Card Free/Total MB");
 
-    // power cards on
-    digitalWrite(SDPOW1, HIGH);
-    digitalWrite(SDPOW2, HIGH);
+    // power cards on; switch must be enabled before power
     digitalWrite(SDSWITCH, LOW); // LOW is Normally Closed, Card 1
     digitalWrite(SDSWITCHEN, LOW); // switch is enabled low
-    // Initialize the SD card
-      SPI.setMOSI(7);
-      SPI.setSCK(14);
-      SPI.setMISO(12);
+    digitalWrite(SDPOW1, HIGH);
+    digitalWrite(SDPOW2, HIGH);
     delay(1000);
+    
+    // Initialize the SD card
+    SPI.setMOSI(7);
+    SPI.setSCK(14);
+    SPI.setMISO(12);
+    
     
     // Initialize the SD card
 
@@ -195,7 +197,7 @@ void manualSettings(){
       }
       else{
         Serial.println("Unable to access the SD card");
-        display.print("Card Fail");
+        display.println("Card Fail");
         display.display();
     }
    }
@@ -205,12 +207,12 @@ void manualSettings(){
   digitalWrite(SDSWITCH, currentCard);
   delay(100);
   if(!sd.begin(CS1)){
-    display.print("Card Fail");
+    display.print("Card Fail--Restarting");
     display.display();
     resetFunc();
   }
   
-  // Power off card 2
+  // Power off unused card
   if(currentCard==0) digitalWrite(SDPOW2, LOW);
   else digitalWrite(SDPOW1, LOW);
 
