@@ -84,6 +84,22 @@ void printZero(int val){
 #define setMode 8
 #define setDielTime 9
 
+uint32_t FreeMem(){ // for Teensy 3.0
+    uint32_t stackTop;
+    uint32_t heapTop;
+
+    // current position of the stack.
+    stackTop = (uint32_t) &stackTop;
+
+    // current position of heap.
+    void* hTop = malloc(1);
+    heapTop = (uint32_t) hTop;
+    free(hTop);
+
+    // The difference is (approximately) the free, available ram.
+    return stackTop - heapTop;
+}
+
 void manualSettings(){
   boolean startRec = 0, startUp, startDown;
   readEEPROM();
@@ -103,12 +119,42 @@ void manualSettings(){
     digitalWrite(SDPOW2, HIGH);
     digitalWrite(SDSWITCH, LOW); // LOW is Normally Closed, Card 1
     digitalWrite(SDSWITCHEN, LOW); // switch is enabled low
+    // Initialize the SD card
+      SPI.setMOSI(7);
+      SPI.setSCK(14);
+      SPI.setMISO(12);
     delay(1000);
     
     // Initialize the SD card
-    SPI.setMOSI(7);
-    SPI.setSCK(14);
-    SPI.setMISO(12);
+
+// try to get begin to fail
+//    for (int n=0; n<10000; n++){
+//      Serial.print(n); Serial.print(" ");
+//      Serial.print(sd.begin(CS1));
+//      Serial.print(" ");
+//      Serial.println(FreeMem());
+//    
+//     delay(200);  // simulate record
+//
+//     // simulate power down and sleep
+//      sd.end();
+//      digitalWrite(SDPOW1, LOW); // turn off SD card
+//      digitalWrite(SDPOW2, LOW);
+//      digitalWrite(SDSWITCHEN, HIGH); // Disconnect SD cards; Enabled when low
+//
+//      delay(1000); // sleep
+//
+//      // wake up
+//      digitalWrite(SGTL_EN, HIGH);
+//      digitalWrite(sdPowSelect[currentCard], HIGH);  // power on current SD card
+//      digitalWrite(hydroPowPin, HIGH); // hydrophone on
+//      digitalWrite(SDSWITCHEN, LOW); // Enabled when low
+//      // Initialize the SD card
+//      SPI.setMOSI(7);
+//      SPI.setSCK(14);
+//      SPI.setMISO(12);
+//       delay(300);
+//    }
       
     for (int n=0; n<2; n++){
       freeMB[n] = 0; //reset
@@ -155,16 +201,18 @@ void manualSettings(){
    }
     // digitalWrite(sdPowSelect[n], LOW);
 
-  // set back to card 1
-  digitalWrite(SDSWITCH, LOW);
+  // set back to currentCard
+  digitalWrite(SDSWITCH, currentCard);
   delay(100);
   if(!sd.begin(CS1)){
-    display.print("Card 1 Fail");
+    display.print("Card Fail");
     display.display();
-    while(1);
+    resetFunc();
   }
+  
   // Power off card 2
-  digitalWrite(SDPOW2, LOW);
+  if(currentCard==0) digitalWrite(SDPOW2, LOW);
+  else digitalWrite(SDPOW1, LOW);
 
   LoadScript(); // secret settings accessible from card 1
   calcGain();

@@ -7,7 +7,6 @@
 
 // To do:
 // - test power down card during sleep
-// - update power measurements during sleep
 // - 1 week test 1 minute on 4 minutes off
 
 // 
@@ -406,7 +405,6 @@ void loop() {
           printTime(startTime);
         }
         
-
         mode = 1;
         display.ssd1306_command(SSD1306_DISPLAYOFF); // turn off display during recording
         startRecording();
@@ -461,17 +459,15 @@ void loop() {
         ss -= snooze_minute * 60;
         snooze_second = ss;
         
-        if( (snooze_hour * 3600) + (snooze_minute * 60) + snooze_second >=10){
+        if( (snooze_hour * 3600) + (snooze_minute * 60) + snooze_second >=20){
             digitalWrite(hydroPowPin, LOW); //hydrophone off
             I2S0_RCSR &= ~(I2S_RCSR_RE | I2S_RCSR_BCE); // de-select audio
-
-            // disable audio chip
-            digitalWrite(SGTL_EN, LOW);
+            digitalWrite(SGTL_EN, LOW); // disable audio chip
             sd.end();
+            digitalWrite(SDSWITCHEN, HIGH); // Disconnect SD cards; Enabled when low
             digitalWrite(SDPOW1, LOW); // turn off SD card
             digitalWrite(SDPOW2, LOW);
-            digitalWrite(SDSWITCHEN, HIGH); // Disconnect SD cards; Enabled when low
-     
+            
             if(printDiags){
               Serial.print("Snooze HH MM SS ");
               Serial.print(snooze_hour);
@@ -495,17 +491,26 @@ void loop() {
              digitalWrite(hydroPowPin, HIGH); // hydrophone on
              digitalWrite(SDSWITCHEN, LOW); // Enabled when low
              // Initialize the SD card
-              SPI.setMOSI(7);
-              SPI.setSCK(14);
-              SPI.setMISO(12);
+             SPI.setMOSI(7);
+             SPI.setSCK(14);
+             SPI.setMISO(12);
              delay(300);
              
              int cardFailCounter = 0;
              while(!sd.begin(CS1)){
               display.print("Card Fail");
               display.display();
-              delay(200);
+
+              digitalWrite(SDSWITCHEN, HIGH); // Disconnect SD cards; Enabled when low
+              digitalWrite(SDPOW1, LOW); // turn off SD card
+              digitalWrite(SDPOW2, LOW);
+              delay(700 + (1000 * cardFailCounter));
+              digitalWrite(SDPOW1, HIGH); // turn on both SD card
+              digitalWrite(SDPOW2, HIGH);
+              digitalWrite(SDSWITCHEN, LOW);
+              delay(300  + (1000 * cardFailCounter)); 
               if(cardFailCounter > 5) resetFunc();
+              cardFailCounter++;
             }
             AudioInit(isf);
          }
@@ -762,8 +767,10 @@ void checkSD(){
       delay(1000);
       resetFunc();
     }
-    if(rec_int>0) sd.mkdir(dirname);
-    sd.chdir(dirname);
+    if(rec_int>0) {
+      sd.mkdir(dirname);
+      sd.chdir(dirname);
+    }
     digitalWrite(SDPOW1, LOW);  // turn off card 1
     
   }
