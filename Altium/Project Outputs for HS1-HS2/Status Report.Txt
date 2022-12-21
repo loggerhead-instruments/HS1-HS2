@@ -1,10 +1,12 @@
-Output: Generates pick and place files
-Type  : Pick Place
-From  : Variant [[No Variations]] of Project [HS1-HS2.PrjPCB]
-   Generated File[Pick Place for HS1-HS2.csv]
+Output: NC Drill Files
+Type  : NC Drill
+From  : Project [HS1-HS2.PrjPCB]
+   Generated File[HS1-HS2.TXT]
+   Generated File[HS1-HS2.LDP]
+   Generated File[HS1-HS2.DRR]
 
 
-Files Generated   : 1
+Files Generated   : 3
 Documents Printed : 0
 
-Finished Output Generation At 9:41:28 AM On 6/5/2021
+Finished Output Generation At 4:06:02 PM On 12/21/2022
